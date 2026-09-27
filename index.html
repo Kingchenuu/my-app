@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MY 一鍵生成" />
+  <title>MY 一鍵生成</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main id="app" class="app-shell">
+    <section id="authView" class="screen auth-screen">
+      <div class="brand-orb">MY</div>
+      <h1>MY 一鍵生成</h1>
+      <p class="muted">登入一次，之後手機直接生成。</p>
+      <form id="authForm" class="stack">
+        <input id="emailInput" type="email" autocomplete="email" placeholder="Email" required />
+        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="密碼（至少 6 碼）" required minlength="6" />
+        <button class="btn primary" type="submit">登入</button>
+        <button id="signUpBtn" class="btn ghost" type="button">第一次使用：建立帳號</button>
+      </form>
+      <p id="authMsg" class="status"></p>
+    </section>
+
+    <section id="mainView" class="screen hidden">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">MY DIRECTOR</div>
+          <h1>一鍵生成</h1>
+        </div>
+        <div id="connectionBadge" class="badge">檢查中</div>
+      </header>
+
+      <section id="homePanel" class="panel active">
+        <div class="hero-card">
+          <div class="preset-row">
+            <div>
+              <div class="eyebrow">預設</div>
+              <h2>真人懸疑短劇</h2>
+            </div>
+            <span class="pill">V6 Omni · 9:16</span>
+          </div>
+          <p class="muted">沿用〈電梯裡多了一個自己〉參考節奏，預設 720p。</p>
+
+          <button id="generateBtn" class="generate-button" type="button">
+            <span class="generate-icon">▶</span>
+            <span>
+              <strong>一鍵生成</strong>
+              <small id="generateHint">沿用預設參考片</small>
+            </span>
+          </button>
+
+          <div id="progressCard" class="progress-card hidden">
+            <div class="progress-head">
+              <span id="progressLabel">準備中</span>
+              <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+            <p id="progressDetail" class="muted compact"></p>
+          </div>
+
+          <div id="resultCard" class="result-card hidden">
+            <video id="resultVideo" playsinline controls preload="metadata"></video>
+            <div class="actions">
+              <a id="downloadBtn" class="btn primary" target="_blank" rel="noopener">開啟成片</a>
+              <button id="shareBtn" class="btn ghost" type="button">分享</button>
+            </div>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>進階設定</summary>
+          <label>畫質
+            <select id="qualitySelect">
+              <option value="540p">540p</option>
+              <option value="720p" selected>720p</option>
+              <option value="1080p">1080p（高額度）</option>
+            </select>
+          </label>
+          <label>生成指令
+            <textarea id="promptInput" rows="9"></textarea>
+          </label>
+          <label class="toggle-row">
+            <input id="audioSwitch" type="checkbox" />
+            <span>生成音訊</span>
+          </label>
+          <p id="costWarning" class="warning hidden">1080p + 影片參考的點數消耗很高，送出前請確認 PixVerse API 額度。</p>
+        </details>
+      </section>
+
+      <section id="jobsPanel" class="panel">
+        <div class="section-title">
+          <div><div class="eyebrow">HISTORY</div><h2>最近生成</h2></div>
+          <button id="refreshJobsBtn" class="icon-btn" type="button">↻</button>
+        </div>
+        <div id="jobsList" class="jobs-list"></div>
+      </section>
+
+      <section id="settingsPanel" class="panel">
+        <div class="section-title">
+          <div><div class="eyebrow">SECURE</div><h2>PixVerse 連線</h2></div>
+        </div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div>
+              <strong>API 狀態</strong>
+              <p class="muted compact">金鑰只由後端使用，不會顯示回手機。</p>
+            </div>
+            <span id="keyStatus" class="badge">未連線</span>
+          </div>
+          <form id="keyForm" class="stack">
+            <input id="apiKeyInput" type="password" autocomplete="off" placeholder="貼上 PixVerse API Key（只需一次）" />
+            <button class="btn primary" type="submit">安全連接 PixVerse</button>
+          </form>
+          <button id="deleteKeyBtn" class="btn danger" type="button">移除 PixVerse 連線</button>
+        </div>
+        <div class="settings-card">
+          <strong>帳號</strong>
+          <p id="userEmail" class="muted"></p>
+          <button id="logoutBtn" class="btn ghost" type="button">登出</button>
+        </div>
+      </section>
+
+      <nav class="bottom-nav">
+        <button data-panel="homePanel" class="nav-item active"><span>●</span>生成</button>
+        <button data-panel="jobsPanel" class="nav-item"><span>◫</span>紀錄</button>
+        <button data-panel="settingsPanel" class="nav-item"><span>⚙</span>設定</button>
+      </nav>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
