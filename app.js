@@ -367,6 +367,94 @@ if (museCodeEls.runBtn) museCodeEls.runBtn.addEventListener("click", async () =>
   }
 });
 
+
+const quickSetupEls = {
+  card: $("quickSetupCard"),
+  badge: $("quickSetupBadge"),
+  museKey: $("quickMuseKey"),
+  githubToken: $("quickGithubToken"),
+  btn: $("quickSetupBtn"),
+  status: $("quickSetupStatus")
+};
+
+function setQuickSetupStatus(message, isError = false) {
+  if (!quickSetupEls.status) return;
+  quickSetupEls.status.textContent = message || "";
+  quickSetupEls.status.style.color = isError ? "#ef9999" : "#d6c9b3";
+}
+
+function setQuickSetupReady(ready) {
+  if (!quickSetupEls.badge) return;
+  quickSetupEls.badge.textContent = ready ? "已接通" : "待連接";
+  quickSetupEls.badge.className = "badge " + (ready ? "ok" : "bad");
+  if (quickSetupEls.card) quickSetupEls.card.classList.toggle("setup-complete", ready);
+}
+
+async function refreshQuickSetupState() {
+  try {
+    const data = await invokeMuseCode("connection_status");
+    const ready = Boolean(data?.museConnected && data?.githubConnected && data?.sparkAvailable);
+    setQuickSetupReady(ready);
+    if (ready) setQuickSetupStatus("手機 Muse 已可用。");
+    return data;
+  } catch {
+    setQuickSetupReady(false);
+    return null;
+  }
+}
+
+async function runQuickSmokeTest() {
+  const task = "Connectivity smoke test only. Inspect the repository and report a brief summary. Do not modify, create, rename, or delete any files. Do not change workflows. Do not commit or push.";
+  const data = await invokeMuseCode("run", {
+    repo: "Kingchenuu/my-app",
+    prompt: task
+  });
+  setQuickSetupStatus("已啟動 Muse Code 測試 · " + (data.model || "Muse Spark"));
+  await loadMuseCodeJobs();
+  await pollMuseCodeJob(data.jobId);
+  return data;
+}
+
+if (quickSetupEls.btn) quickSetupEls.btn.addEventListener("click", async () => {
+  const museKey = quickSetupEls.museKey.value.trim();
+  const githubToken = quickSetupEls.githubToken.value.trim();
+  if (!museKey || !githubToken) {
+    return setQuickSetupStatus("請把兩個欄位都貼上，再按一次。", true);
+  }
+
+  quickSetupEls.btn.disabled = true;
+  quickSetupEls.btn.textContent = "驗證並連接中…";
+  setQuickSetupStatus("正在驗證 Meta Muse…");
+
+  try {
+    await invokeMuse("save_key", { apiKey: museKey });
+    quickSetupEls.museKey.value = "";
+
+    setQuickSetupStatus("Meta Muse 已連接，正在驗證 GitHub…");
+    await invokeMuseCode("save_github_token", { token: githubToken });
+    quickSetupEls.githubToken.value = "";
+
+    const state = await refreshMuseCodeConnection();
+    await refreshMuseConnection();
+    const ready = Boolean(state?.museConnected && state?.githubConnected && state?.sparkAvailable);
+    setQuickSetupReady(ready);
+
+    if (!state?.sparkAvailable) {
+      throw new Error("Meta Key 已連接，但目前沒有 Muse Spark 權限；Muse Image 可用，Muse Code 不能啟動。");
+    }
+
+    setQuickSetupStatus("兩個連線都完成，正在跑第一個 Muse Code 測試…");
+    quickSetupEls.btn.textContent = "Muse Code 測試中…";
+    await runQuickSmokeTest();
+  } catch (err) {
+    setQuickSetupStatus("設定失敗：" + err.message, true);
+  } finally {
+    quickSetupEls.btn.disabled = false;
+    quickSetupEls.btn.textContent = "連接並跑測試";
+    await refreshQuickSetupState();
+  }
+});
+
 let currentSession = null;
 let pollTimer = null;
 let currentResultUrl = "";
