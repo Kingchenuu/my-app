@@ -49,10 +49,16 @@
           </div>
           <p class="muted">只要在這裡各貼一次。系統會驗證、加密存入 Vault，接著自動跑一個不改檔案的 Muse Code 連線測試。</p>
           <label class="muse-label">Meta Model API Key
-            <input id="quickMuseKey" type="password" autocomplete="off" placeholder="貼上 Meta API Key" />
+            <div class="secret-input-row">
+              <input id="quickMuseKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Meta API Key" />
+              <button id="pasteMuseKeyBtn" class="btn ghost paste-btn" type="button">貼上</button>
+            </div>
           </label>
           <label class="muse-label">GitHub fine-grained token
-            <input id="quickGithubToken" type="password" autocomplete="off" placeholder="貼上 GitHub Token" />
+            <div class="secret-input-row">
+              <input id="quickGithubToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="GitHub Token" />
+              <button id="pasteGithubTokenBtn" class="btn ghost paste-btn" type="button">貼上</button>
+            </div>
           </label>
           <button id="quickSetupBtn" class="btn primary code-run-btn" type="button">連接並跑測試</button>
           <p id="quickSetupStatus" class="status"></p>
