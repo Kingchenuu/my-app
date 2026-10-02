@@ -3,7 +3,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 const SUPABASE_URL = "https://ahhxrymujyqsrzqsyrqs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_lN4jSnIEm0Wz4Dd7_2WLYg_lhOTZNKe";
 const FUNCTION_NAME = "pixverse-one-tap";
+const MUSE_FUNCTION_NAME = "muse-one-tap";
 const DEFAULT_REFERENCE_URL = "https://raw.githubusercontent.com/Kingchenuu/my-app/main/reference_elevator_tiny.b64";
+
+const MUSE_PRESETS = {
+  daoxiang: `Photorealistic high-end interior architectural visualization of a Hualien rice-field-inspired kitchen in Taiwan. GOMENG design DNA: contemporary East Asian restrained style, natural walnut cabinetry, matte black accents, light warm-gray mineral plaster, tea-colored ribbed glass display cabinets, 2700-3000K indirect lighting, stone island, practical professional cabinet detailing, readable new-old junctions, maintainability-first details, calm atmosphere, golden rice fields and Hualien mountains outside, no cream style, no people, no text, no logos.`,
+  song: `Photorealistic high-end interior architecture in Taiwan, GOMENG Song-inspired contemporary style. Restrained proportions, quiet horizontal lines, dark natural timber, warm gray mineral plaster, tea glass, matte black metal, 2700K concealed light, refined joinery, practical storage, understated stone, empty clean space, no cream style, no people, no text, no logos.`,
+  warmblack: `Photorealistic GOMENG warm-black interior kitchen in Taiwan. Deep charcoal and matte black details balanced by natural walnut, warm gray mineral plaster, tea-colored glass, 2700-3000K indirect lighting, architectural shadow lines, practical buildable cabinetry, elegant stone island, restrained premium atmosphere, no cream style, no people, no text, no logos.`
+};
 
 const DEFAULT_PROMPT = `Photorealistic live-action cinematic suspense short in a modern Taiwan elevator at night. Preserve the timing and motion relationships of the reference video. One East Asian woman in her mid-20s stands alone holding a smartphone. Brushed-metal walls, cool fluorescent light, shallow depth of field, restrained natural acting. The floor indicator rises, then jumps to 13. Her mirror reflection begins to lag, then turns its head toward camera by itself while the real woman stays frozen. The reflection gives a subtle unnatural smile. Elevator doors open into a dark corridor. As the real woman moves to leave, the mirror reflection remains behind staring at camera. Strong first-second hook, realistic mirror materials, no gore, no monster deformation, no subtitles, no watermark, consistent face and wardrobe. Cut to black on a low-frequency sting.`;
 
@@ -23,6 +30,119 @@ const els = {
   jobsList: $("jobsList"), refreshJobsBtn: $("refreshJobsBtn"), keyForm: $("keyForm"), apiKey: $("apiKeyInput"),
   keyStatus: $("keyStatus"), deleteKeyBtn: $("deleteKeyBtn"), userEmail: $("userEmail"), logoutBtn: $("logoutBtn")
 };
+
+const museEls = {
+  prompt: $("musePromptInput"),
+  count: $("museCountSelect"),
+  generateBtn: $("museGenerateBtn"),
+  status: $("museStatus"),
+  gallery: $("museGallery"),
+  keyForm: $("museKeyForm"),
+  apiKey: $("museApiKeyInput"),
+  keyStatus: $("museKeyStatus"),
+  deleteKeyBtn: $("museDeleteKeyBtn")
+};
+
+async function invokeMuse(action, body = {}) {
+  const { data, error } = await supabase.functions.invoke(MUSE_FUNCTION_NAME, { body: { action, ...body } });
+  if (error) throw new Error(error.message || "Muse 後端呼叫失敗");
+  if (!data?.ok) throw new Error(data?.error || "Muse 操作失敗");
+  return data;
+}
+
+function setMuseStatus(msg, isError = false) {
+  if (!museEls.status) return;
+  museEls.status.textContent = msg || "";
+  museEls.status.style.color = isError ? "#ef9999" : "#d6c9b3";
+}
+
+function setMuseConnected(connected) {
+  if (!museEls.keyStatus || !museEls.generateBtn) return;
+  museEls.keyStatus.textContent = connected ? "已連線" : "未連線";
+  museEls.keyStatus.className = "badge " + (connected ? "ok" : "bad");
+  museEls.generateBtn.disabled = !connected;
+}
+
+async function refreshMuseConnection() {
+  try {
+    const data = await invokeMuse("connection_status");
+    setMuseConnected(Boolean(data.connected));
+    if (!data.connected) setMuseStatus("先到設定貼一次 Meta Model API Key。");
+  } catch (err) {
+    setMuseConnected(false);
+    setMuseStatus("Muse 後端未就緒", true);
+  }
+}
+
+if (museEls.prompt) museEls.prompt.value = MUSE_PRESETS.daoxiang;
+document.querySelectorAll("[data-muse-preset]").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("[data-muse-preset]").forEach((x) => x.classList.remove("active"));
+  b.classList.add("active");
+  const key = b.dataset.musePreset;
+  if (museEls.prompt && MUSE_PRESETS[key]) museEls.prompt.value = MUSE_PRESETS[key];
+}));
+
+if (museEls.keyForm) museEls.keyForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const apiKey = museEls.apiKey.value.trim();
+  if (!apiKey) return;
+  const btn = museEls.keyForm.querySelector("button");
+  btn.disabled = true; btn.textContent = "驗證 Muse 中…";
+  try {
+    await invokeMuse("save_key", { apiKey });
+    museEls.apiKey.value = "";
+    setMuseConnected(true);
+    setMuseStatus("Muse Image 已連線，可以直接用手機出圖。");
+  } catch (err) {
+    setMuseStatus("連線失敗：" + err.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = "安全連接 Muse";
+  }
+});
+
+if (museEls.deleteKeyBtn) museEls.deleteKeyBtn.addEventListener("click", async () => {
+  if (!confirm("確定移除 Muse 連線？")) return;
+  try {
+    await invokeMuse("delete_key");
+    setMuseConnected(false);
+    setMuseStatus("Muse 連線已移除。");
+  } catch (err) {
+    setMuseStatus(err.message, true);
+  }
+});
+
+if (museEls.generateBtn) museEls.generateBtn.addEventListener("click", async () => {
+  const prompt = museEls.prompt.value.trim();
+  const count = Number(museEls.count.value || 1);
+  if (!prompt) return setMuseStatus("請輸入生成指令。", true);
+  museEls.generateBtn.disabled = true;
+  museEls.gallery.innerHTML = "";
+  setMuseStatus("Muse Image 生成中…");
+  try {
+    const data = await invokeMuse("generate", { prompt, count });
+    for (const img of data.images || []) {
+      const card = document.createElement("article");
+      card.className = "muse-image-card";
+      const image = document.createElement("img");
+      image.src = img.url;
+      image.alt = "Muse Image generated interior";
+      image.loading = "lazy";
+      const link = document.createElement("a");
+      link.className = "btn ghost";
+      link.href = img.url;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "開啟原圖";
+      card.append(image, link);
+      museEls.gallery.append(card);
+    }
+    setMuseStatus("完成 · " + (data.images?.length || 0) + " 張 · " + (data.model || "muse-image-1.0"));
+  } catch (err) {
+    setMuseStatus("生成失敗：" + err.message, true);
+  } finally {
+    museEls.generateBtn.disabled = false;
+  }
+});
 
 let currentSession = null;
 let pollTimer = null;
@@ -190,6 +310,7 @@ async function renderSession(session) {
   if (!loggedIn) return;
   els.userEmail.textContent = session.user.email || session.user.id;
   await refreshConnection();
+  await refreshMuseConnection();
 }
 supabase.auth.onAuthStateChange((_event, session) => { renderSession(session); });
 const { data: sessionData } = await supabase.auth.getSession();
