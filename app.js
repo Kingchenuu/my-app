@@ -4,6 +4,7 @@ const SUPABASE_URL = "https://ahhxrymujyqsrzqsyrqs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_lN4jSnIEm0Wz4Dd7_2WLYg_lhOTZNKe";
 const FUNCTION_NAME = "pixverse-one-tap";
 const MUSE_FUNCTION_NAME = "muse-one-tap";
+const MUSE_CODE_FUNCTION_NAME = "muse-code-one-tap";
 const DEFAULT_REFERENCE_URL = "https://raw.githubusercontent.com/Kingchenuu/my-app/main/reference_elevator_tiny.b64";
 
 const MUSE_PRESETS = {
@@ -141,6 +142,228 @@ if (museEls.generateBtn) museEls.generateBtn.addEventListener("click", async () 
     setMuseStatus("生成失敗：" + err.message, true);
   } finally {
     museEls.generateBtn.disabled = false;
+  }
+});
+
+
+const museCodeEls = {
+  badge: $("museCodeBadge"),
+  repo: $("museCodeRepo"),
+  prompt: $("museCodePrompt"),
+  runBtn: $("museCodeRunBtn"),
+  status: $("museCodeStatus"),
+  jobs: $("museCodeJobsList"),
+  githubForm: $("githubKeyForm"),
+  githubToken: $("githubTokenInput"),
+  githubStatus: $("githubKeyStatus"),
+  githubDeleteBtn: $("githubDeleteKeyBtn")
+};
+
+let museCodePollTimer = null;
+const DEFAULT_CODE_TASK = "Inspect the selected repository for the current highest-impact incomplete engineering issue. Make the smallest safe code changes needed, preserve already verified modules, run relevant local tests when feasible, and leave all GitHub workflow files unchanged.";
+
+async function invokeMuseCode(action, body = {}) {
+  const { data, error } = await supabase.functions.invoke(MUSE_CODE_FUNCTION_NAME, { body: { action, ...body } });
+  if (error) throw new Error(error.message || "Muse Code 後端呼叫失敗");
+  if (!data?.ok) throw new Error(data?.error || "Muse Code 操作失敗");
+  return data;
+}
+
+function setMuseCodeStatus(message, isError = false) {
+  if (!museCodeEls.status) return;
+  museCodeEls.status.textContent = message || "";
+  museCodeEls.status.style.color = isError ? "#ef9999" : "#d6c9b3";
+}
+
+function setMuseCodeConnection(data) {
+  if (!museCodeEls.badge || !museCodeEls.runBtn || !museCodeEls.githubStatus) return;
+  const ready = Boolean(data?.museConnected && data?.githubConnected && data?.sparkAvailable);
+  museCodeEls.runBtn.disabled = !ready;
+  museCodeEls.githubStatus.textContent = data?.githubConnected ? "已連線" : "未連線";
+  museCodeEls.githubStatus.className = "badge " + (data?.githubConnected ? "ok" : "bad");
+
+  if (ready) {
+    museCodeEls.badge.textContent = "雲端就緒";
+    museCodeEls.badge.className = "badge ok";
+    setMuseCodeStatus("Muse Code 可由手機直接派送，MSI 不必在線。");
+  } else if (!data?.museConnected) {
+    museCodeEls.badge.textContent = "缺 Muse Key";
+    museCodeEls.badge.className = "badge bad";
+    setMuseCodeStatus("先到設定連接 Meta Model API Key。");
+  } else if (!data?.sparkAvailable) {
+    museCodeEls.badge.textContent = "缺 Spark 權限";
+    museCodeEls.badge.className = "badge bad";
+    setMuseCodeStatus("目前 Meta Key 沒有 Muse Spark 權限；Muse Image 仍可使用。", true);
+  } else if (!data?.githubConnected) {
+    museCodeEls.badge.textContent = "缺 GitHub";
+    museCodeEls.badge.className = "badge bad";
+    setMuseCodeStatus("到設定連接 GitHub fine-grained token。");
+  }
+}
+
+async function refreshMuseCodeConnection() {
+  try {
+    const data = await invokeMuseCode("connection_status");
+    setMuseCodeConnection(data);
+    return data;
+  } catch (err) {
+    if (museCodeEls.badge) {
+      museCodeEls.badge.textContent = "後端未就緒";
+      museCodeEls.badge.className = "badge bad";
+    }
+    if (museCodeEls.runBtn) museCodeEls.runBtn.disabled = true;
+    setMuseCodeStatus(err.message, true);
+    return null;
+  }
+}
+
+function codeStatusLabel(status) {
+  return ({
+    queued: "排隊",
+    dispatched: "已派送",
+    claimed: "已領取",
+    running: "執行中",
+    completed: "完成",
+    failed: "失敗"
+  })[status] || status || "未知";
+}
+
+async function loadMuseCodeJobs() {
+  if (!currentSession || !museCodeEls.jobs) return [];
+  try {
+    const data = await invokeMuseCode("recent");
+    museCodeEls.jobs.replaceChildren();
+    const jobs = data.jobs || [];
+    if (!jobs.length) {
+      const empty = document.createElement("div");
+      empty.className = "code-job muted compact";
+      empty.textContent = "還沒有 Muse Code 任務。";
+      museCodeEls.jobs.append(empty);
+      return jobs;
+    }
+
+    for (const job of jobs.slice(0, 8)) {
+      const card = document.createElement("article");
+      card.className = "code-job";
+
+      const top = document.createElement("div");
+      top.className = "job-top";
+      const title = document.createElement("strong");
+      title.textContent = job.repo?.split("/").pop() || "Muse Code";
+      const state = document.createElement("span");
+      state.className = "job-status";
+      state.textContent = codeStatusLabel(job.status);
+      top.append(title, state);
+
+      const meta = document.createElement("p");
+      meta.className = "muted compact";
+      meta.textContent = new Date(job.created_at).toLocaleString("zh-TW");
+
+      const task = document.createElement("p");
+      task.className = "compact code-task";
+      task.textContent = job.prompt || "";
+
+      card.append(top, meta, task);
+
+      if (job.pr_url) {
+        const link = document.createElement("a");
+        link.href = job.pr_url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "開啟 Pull Request →";
+        card.append(link);
+      }
+      if (job.result_summary) {
+        const summary = document.createElement("p");
+        summary.className = "muted compact";
+        summary.textContent = job.result_summary;
+        card.append(summary);
+      }
+      if (job.error) {
+        const error = document.createElement("p");
+        error.className = "warning";
+        error.textContent = job.error;
+        card.append(error);
+      }
+      museCodeEls.jobs.append(card);
+    }
+    return jobs;
+  } catch (err) {
+    setMuseCodeStatus("讀取任務失敗：" + err.message, true);
+    return [];
+  }
+}
+
+async function pollMuseCodeJob(jobId, attempts = 0) {
+  clearTimeout(museCodePollTimer);
+  const jobs = await loadMuseCodeJobs();
+  const job = jobs.find((j) => j.id === jobId);
+  if (!job) return;
+  if (job.status === "completed") {
+    setMuseCodeStatus(job.pr_url ? "完成，Pull Request 已建立。" : "完成，這次不需要修改檔案。");
+    if (museCodeEls.runBtn) museCodeEls.runBtn.disabled = false;
+    return;
+  }
+  if (job.status === "failed") {
+    setMuseCodeStatus("Muse Code 失敗：" + (job.error || "請查看任務紀錄"), true);
+    if (museCodeEls.runBtn) museCodeEls.runBtn.disabled = false;
+    return;
+  }
+  if (attempts >= 180) {
+    setMuseCodeStatus("任務仍在雲端執行，可稍後重新打開手機查看。");
+    if (museCodeEls.runBtn) museCodeEls.runBtn.disabled = false;
+    return;
+  }
+  museCodePollTimer = setTimeout(() => pollMuseCodeJob(jobId, attempts + 1), 5000);
+}
+
+if (museCodeEls.prompt) museCodeEls.prompt.value = DEFAULT_CODE_TASK;
+
+if (museCodeEls.githubForm) museCodeEls.githubForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const token = museCodeEls.githubToken.value.trim();
+  if (!token) return;
+  const btn = museCodeEls.githubForm.querySelector("button");
+  btn.disabled = true;
+  btn.textContent = "驗證 GitHub 中…";
+  try {
+    const data = await invokeMuseCode("save_github_token", { token });
+    museCodeEls.githubToken.value = "";
+    setMuseCodeStatus("GitHub 已安全連接：" + (data.githubLogin || ""));
+    await refreshMuseCodeConnection();
+  } catch (err) {
+    setMuseCodeStatus("GitHub 連線失敗：" + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "安全連接 GitHub";
+  }
+});
+
+if (museCodeEls.githubDeleteBtn) museCodeEls.githubDeleteBtn.addEventListener("click", async () => {
+  if (!confirm("確定移除 GitHub 執行權限？")) return;
+  try {
+    await invokeMuseCode("delete_github_token");
+    await refreshMuseCodeConnection();
+  } catch (err) {
+    setMuseCodeStatus(err.message, true);
+  }
+});
+
+if (museCodeEls.runBtn) museCodeEls.runBtn.addEventListener("click", async () => {
+  const repo = museCodeEls.repo.value;
+  const prompt = museCodeEls.prompt.value.trim();
+  if (!prompt) return setMuseCodeStatus("請輸入工程任務。", true);
+
+  museCodeEls.runBtn.disabled = true;
+  setMuseCodeStatus("正在派送 Muse Code 雲端任務…");
+  try {
+    const data = await invokeMuseCode("run", { repo, prompt });
+    setMuseCodeStatus("已派送 · " + data.model + " · GitHub Actions 啟動中");
+    await loadMuseCodeJobs();
+    await pollMuseCodeJob(data.jobId);
+  } catch (err) {
+    setMuseCodeStatus("無法啟動：" + err.message, true);
+    museCodeEls.runBtn.disabled = false;
   }
 });
 
