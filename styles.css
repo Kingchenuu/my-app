@@ -83,3 +83,7 @@ linear-gradient(150deg,#26221d,#111114 62%);color:var(--text);display:flex;align
 .quick-setup-card .muse-label{margin-top:14px}
 .quick-setup-card.setup-complete{border-color:#35543b}
 .quick-setup-card.setup-complete #quickSetupBtn{display:none}
+
+.secret-input-row{display:grid;grid-template-columns:minmax(0,1fr) 86px;gap:8px;align-items:stretch}
+.secret-input-row input{min-width:0}
+.paste-btn{margin:0!important;padding:12px 10px;white-space:nowrap}
