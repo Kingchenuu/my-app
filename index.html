@@ -38,6 +38,38 @@
       </header>
 
       <section id="homePanel" class="panel active">
+        <div class="muse-card">
+          <div class="preset-row">
+            <div>
+              <div class="eyebrow">MUSE IMAGE · GOMENG</div>
+              <h2>手機直接出設計圖</h2>
+            </div>
+            <span class="pill">muse-image-1.0</span>
+          </div>
+          <p class="muted">手機直接呼叫 Meta Muse Image。預設套用 GOMENG 稻香／暖黑／宋式克制語言。</p>
+
+          <div class="muse-presets">
+            <button class="preset-chip active" type="button" data-muse-preset="daoxiang">稻香</button>
+            <button class="preset-chip" type="button" data-muse-preset="song">宋式</button>
+            <button class="preset-chip" type="button" data-muse-preset="warmblack">暖黑</button>
+          </div>
+
+          <label class="muse-label">生成指令
+            <textarea id="musePromptInput" rows="7"></textarea>
+          </label>
+
+          <div class="muse-controls">
+            <select id="museCountSelect" aria-label="生成張數">
+              <option value="1" selected>1 張</option>
+              <option value="3">3 版</option>
+            </select>
+            <button id="museGenerateBtn" class="btn primary muse-generate" type="button">Muse 出圖</button>
+          </div>
+
+          <p id="museStatus" class="status"></p>
+          <div id="museGallery" class="muse-gallery"></div>
+        </div>
+
         <div class="hero-card">
           <div class="preset-row">
             <div>
@@ -105,6 +137,24 @@
       <section id="settingsPanel" class="panel">
         <div class="section-title">
           <div><div class="eyebrow">SECURE</div><h2>PixVerse 連線</h2></div>
+        </div>
+        
+        <div class="settings-card">
+          <div class="section-title compact-title">
+            <div><div class="eyebrow">META</div><h2>Muse Image 連線</h2></div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <strong>Muse API 狀態</strong>
+              <p class="muted compact">金鑰加密存於 Supabase Vault，不會回傳到手機畫面。</p>
+            </div>
+            <span id="museKeyStatus" class="badge">未連線</span>
+          </div>
+          <form id="museKeyForm" class="stack">
+            <input id="museApiKeyInput" type="password" autocomplete="off" placeholder="貼上 Meta Model API Key（只需一次）" />
+            <button class="btn primary" type="submit">安全連接 Muse</button>
+          </form>
+          <button id="museDeleteKeyBtn" class="btn danger" type="button">移除 Muse 連線</button>
         </div>
         <div class="settings-card">
           <div class="setting-row">
