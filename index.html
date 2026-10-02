@@ -70,6 +70,33 @@
           <div id="museGallery" class="muse-gallery"></div>
         </div>
 
+
+        <div class="muse-code-card">
+          <div class="preset-row">
+            <div>
+              <div class="eyebrow">MUSE CODE · CLOUD RUNNER</div>
+              <h2>手機直接修程式</h2>
+            </div>
+            <span id="museCodeBadge" class="badge">檢查中</span>
+          </div>
+          <p class="muted">手機送任務 → GitHub Actions 雲端啟動官方 Muse Code → 自動改檔 → 建立 PR 給你審核。MSI 可關機。</p>
+
+          <label class="muse-label">專案
+            <select id="museCodeRepo">
+              <option value="Kingchenuu/GOMENG-Cabinet-AI">GOMENG-Cabinet-AI</option>
+              <option value="Kingchenuu/my-app">MY 手機控制台</option>
+            </select>
+          </label>
+
+          <label class="muse-label">工程任務
+            <textarea id="museCodePrompt" rows="7" placeholder="例如：檢查目前測試失敗原因，修正後跑相關測試；不要改已通過的 VERIFIED_PASS 模組。"></textarea>
+          </label>
+
+          <button id="museCodeRunBtn" class="btn primary code-run-btn" type="button">Muse Code 執行</button>
+          <p id="museCodeStatus" class="status"></p>
+          <div id="museCodeJobsList" class="code-jobs"></div>
+        </div>
+
         <div class="hero-card">
           <div class="preset-row">
             <div>
@@ -169,6 +196,25 @@
             <button class="btn primary" type="submit">安全連接 PixVerse</button>
           </form>
           <button id="deleteKeyBtn" class="btn danger" type="button">移除 PixVerse 連線</button>
+        </div>
+
+        <div class="settings-card">
+          <div class="section-title compact-title">
+            <div><div class="eyebrow">GITHUB</div><h2>Muse Code 雲端執行</h2></div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <strong>GitHub 執行權限</strong>
+              <p class="muted compact">Token 加密存於 Supabase Vault，只用來派送你自己的 repo 任務。</p>
+            </div>
+            <span id="githubKeyStatus" class="badge">未連線</span>
+          </div>
+          <form id="githubKeyForm" class="stack">
+            <input id="githubTokenInput" type="password" autocomplete="off" placeholder="貼上 GitHub fine-grained token（只需一次）" />
+            <button class="btn primary" type="submit">安全連接 GitHub</button>
+          </form>
+          <p class="muted compact token-hint">建議只授權 Kingchenuu/my-app 與 GOMENG-Cabinet-AI；Repository permissions 至少需要 Contents: Read and write。</p>
+          <button id="githubDeleteKeyBtn" class="btn danger" type="button">移除 GitHub 執行權限</button>
         </div>
         <div class="settings-card">
           <strong>帳號</strong>
