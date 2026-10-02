@@ -69,3 +69,12 @@ linear-gradient(150deg,#26221d,#111114 62%);color:var(--text);display:flex;align
 .muse-image-card .btn{display:block;margin-top:10px}
 .compact-title{margin:0 0 14px}
 @media(min-width:620px){.muse-gallery{grid-template-columns:repeat(2,1fr)}}
+
+.muse-code-card{border:1px solid #323b46;background:linear-gradient(180deg,rgba(22,27,33,.96),rgba(13,14,17,.98));border-radius:28px;padding:20px;margin-bottom:18px;box-shadow:0 24px 80px rgba(0,0,0,.28)}
+.muse-code-card .muse-label{margin-top:14px}
+.code-run-btn{width:100%;margin-top:14px}
+.code-jobs{display:grid;gap:10px;margin-top:12px}
+.code-job{border:1px solid var(--line);border-radius:18px;background:#0d0f12;padding:13px}
+.code-job a{display:inline-block;margin-top:10px;color:var(--gold);text-decoration:none}
+.code-task{margin-top:8px;line-height:1.45;color:#d5d1cb;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.token-hint{margin-top:10px}
