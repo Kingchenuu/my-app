@@ -1,7 +1,7 @@
 {
   "name": "MY 一鍵生成",
   "short_name": "MY生成",
-  "description": "手機一鍵送出 PixVerse 真人短劇生成",
+  "description": "手機一鍵呼叫 Muse Image 與 PixVerse 生成",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
