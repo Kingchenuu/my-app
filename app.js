@@ -373,9 +373,34 @@ const quickSetupEls = {
   badge: $("quickSetupBadge"),
   museKey: $("quickMuseKey"),
   githubToken: $("quickGithubToken"),
+  pasteMuse: $("pasteMuseKeyBtn"),
+  pasteGithub: $("pasteGithubTokenBtn"),
   btn: $("quickSetupBtn"),
   status: $("quickSetupStatus")
 };
+
+
+async function pasteClipboardInto(input, label) {
+  if (!input) return;
+  try {
+    if (!navigator.clipboard?.readText) throw new Error("clipboard_unavailable");
+    const value = (await navigator.clipboard.readText()).trim();
+    if (!value) throw new Error("clipboard_empty");
+    input.value = value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    setQuickSetupStatus(label + " 已貼上。");
+  } catch (err) {
+    input.focus();
+    setQuickSetupStatus("iPhone 未允許讀取剪貼簿。請在跳出的權限視窗選「允許貼上」；若沒跳出，長按欄位再選「貼上」。", true);
+  }
+}
+
+if (quickSetupEls.pasteMuse) {
+  quickSetupEls.pasteMuse.addEventListener("click", () => pasteClipboardInto(quickSetupEls.museKey, "Meta API Key"));
+}
+if (quickSetupEls.pasteGithub) {
+  quickSetupEls.pasteGithub.addEventListener("click", () => pasteClipboardInto(quickSetupEls.githubToken, "GitHub Token"));
+}
 
 function setQuickSetupStatus(message, isError = false) {
   if (!quickSetupEls.status) return;
