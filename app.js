@@ -622,6 +622,9 @@ async function renderSession(session) {
   els.userEmail.textContent = session.user.email || session.user.id;
   await refreshConnection();
   await refreshMuseConnection();
+  await refreshMuseCodeConnection();
+  await loadMuseCodeJobs();
+  await refreshQuickSetupState();
 }
 supabase.auth.onAuthStateChange((_event, session) => { renderSession(session); });
 const { data: sessionData } = await supabase.auth.getSession();
